@@ -2,10 +2,21 @@
 	import { CapacitorHttp } from '@capacitor/core';
 	import { Preferences } from '@capacitor/preferences';
 	import { scale } from 'svelte/transition';
+    import MovingWaves from "$lib/waves/MovingWaves.svelte"
 	let moved = $state(false);
+	let timeC = $state();
 	let sec = $state(0);
-	let time = $derived(Math.floor(sec / 3600) + ':' + Math.floor(sec / 60) + ':' + sec%60);
 	let timer;
+	let move = $props();
+
+	function start_counting() {
+		sec = 0;
+		timer = setInterval(() => (sec += 1), 1000);
+	}
+	function stop_counting() {
+		sec = 0;
+		timer = clearInterval(timer);
+	}
 
 	let move_button = async () => {
 		try {
@@ -21,6 +32,8 @@
 			alert(error);
 		}
 		moved = !moved;
+		let nav = document.getElementById('navbar');
+		nav.style.visibility = moved ? 'hidden' : 'visible';
 
 		if (moved) {
 			setTimeout(() => {
@@ -30,22 +43,52 @@
 			setTimeout(() => {
 				let video = document.getElementById('splash-animation');
 				video.style.visibility = 'hidden';
+				start_counting();
 			}, 1650);
-			sec = 0;
-			timer = setInterval(() => (sec += 1), 1000);
 		} else {
-			clearInterval(timer);
-			sec = 0;
+			stop_counting();
 		}
-		let nav = document.getElementById('navbar');
-		nav.style.visibility = moved ? 'hidden' : 'visible';
 	};
 </script>
 
 <div id="button-div">
-	{#if moved}
-		<h1>{time}</h1>
-	{/if}
+	<div id="time" class={moved ? 'moved' : ''}>
+		<h1 id="hours">{((sec / 3600) % 60 < 10 ? '0' : '') + (Math.floor(sec / 3600) % 60)}</h1>
+		<h1>:</h1>
+		<h1 id="mins">{((sec / 60) % 60 < 10 ? '0' : '') + (Math.floor(sec / 60) % 60)}</h1>
+		<h1>:</h1>
+		<h1 id="seconds">{(sec % 60 < 10 ? '0' : '') + (Math.floor(sec) % 60)}</h1>
+	</div>
+
+	<style>
+		@font-face {
+			font-family: 'Wendy One';
+			src: url(/WendyOne-Regular.ttf);
+		}
+		#time h1 {
+			text-transform: none;
+			line-break: auto;
+			overflow-wrap: initial;
+			white-space: pre;
+			font-size: 80px;
+			text-rendering: geometricPrecision;
+			text-decoration: none;
+			letter-spacing: 0px;
+			font-family: 'Wendy One';
+			font-style: normal;
+			font-weight: 20vw;
+			position: relative;
+			transition: transform 2s cubic-bezier(0.65, 0.27, 0, 1.03);
+			padding: 0px;
+			margin: 0px;
+		}
+		#time {
+			display: flex;
+			overflow: visible;
+			align-items: start;
+		}
+	</style>
+
 	<button class={moved ? 'moved' : ''} onclick={move_button}>
 		{#if moved}
 			<img src="./stop.svg" alt="stop img" />
@@ -68,6 +111,10 @@
 		<source src="/splash-updated.webm" type="video/webm" />
 	</video>
 {/if}
+<div id="water-holder" class={moved ? 'moved' : ''}>
+    <MovingWaves/>
+	<div id="water"></div>
+</div>
 
 <style>
 	#splash-animation {
@@ -76,7 +123,7 @@
 		pointer-events: none;
 		bottom: 0%;
 		left: 50%;
-		transform: translate(-55%, 25%);
+		transform: translate(-55%, 30%);
 		width: 200px;
 		height: 200px;
 		margin: 0;
@@ -88,16 +135,55 @@
 		place-items: center;
 		height: 100vh;
 	}
-	#button-div h1 {
-		font-size: 30vw;
-		font-weight: bold;
-		margin: 0;
+	#time {
+		z-index: -1;
+		visibility: hidden;
+		overflow: visible;
 	}
-	.moved {
+	#time.moved {
+		z-index: 0;
+		visibility: visible;
+	}
+	#time.moved #hours {
+		transform: translateY(15vh) rotateZ(30deg);
+	}
+	#time.moved #mins {
+		transition-delay: 1s;
+		transform: translateY(-5vh) scale(110%);
+	}
+	#time.moved #seconds {
+		transition-delay: 1.5s;
+		transform: translateY(-20vh) rotateZ(-30deg) scale(120%);
+	}
+	#water-holder {
+        position: absolute;
+        visibility: hidden;
+        overflow: visible;
+        width: 100%;
+        height: 0px;
+		bottom: 0px;
+        left: 50%;
+        transform: translateX(-50%);
+        transition: height 3s ease-out;
+        z-index: -4;
+	}
+	#water-holder.moved {
+		visibility: visible;
+        height: 100vh;
+	}
+    #water {
+        position: absolute;
+        width: 100%;
+        height: 90%;
+        bottom: 0;
+        background-color: #0178C9;
+    }
+
+	button.moved {
 		transform: translateY(40vh) scale(30%);
 	}
 	#button-div button {
-        position: absolute;
+		position: absolute;
 		transition: transform 600ms cubic-bezier(1, -0.3, 0.265, 2);
 		border: 0px;
 		border-radius: 50%;
